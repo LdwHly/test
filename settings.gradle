@@ -1,0 +1,1 @@
+include ':logapplication', ':socketclienttest'//, ':spotify_auth_lib'
