@@ -4,11 +4,14 @@ import android.app.Service;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
@@ -17,6 +20,11 @@ import android.text.style.StyleSpan;
 import android.util.LruCache;
 
 import com.alibaba.fastjson.JSON;
+import com.dx.log.logapplication.LogFromServer;
+import com.dx.log.logapplication.LogLog;
+import com.dx.log.logapplication.game.ISocketClient;
+import com.dx.log.logapplication.game.SocketClintPoxy;
+import com.dx.log.logapplication.game.TWSocketClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,20 +33,43 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LogRemoteService extends Service {
+public class LogRemoteService extends Service implements ISocketClient.StringDataCallback {
     public static WorkHandler workHandler;
     WorkThread workThread;
+    SocketClintPoxy mSocketClintPoxy;
+    LogRemoteIBinder logRemoteIBinder;
 
     @Override
     public void onCreate() {
         super.onCreate();
         workThread = new WorkThread();
         workThread.start();
+        logRemoteIBinder = new LogRemoteIBinder();
+        mSocketClintPoxy = SocketClintPoxy.getInstance();
+        mSocketClintPoxy.setStringDataCallback(this);
+        mSocketClintPoxy.setTarget(new TWSocketClient());
+
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-        return new LogRemoteIBinder();
+        return logRemoteIBinder;
+    }
+
+    @Override
+    public void receMsg(String msg) {
+        try {
+            LogLog.d("msg", msg);
+            LogFromServer logFromServer = JSON.parseObject(msg, LogFromServer.class);
+            if (TextUtils.isEmpty(logFromServer.url)) {
+                logRemoteIBinder.d(logFromServer.tag, logFromServer.context);
+            } else {
+                logRemoteIBinder.println(logFromServer.tag, logFromServer.url, logFromServer.parms, logFromServer.context);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -56,6 +87,15 @@ public class LogRemoteService extends Service {
                 spannableStringBuilder.setSpan(styleSpan, 0, childTag.length(), Spannable.SPAN_EXCLUSIVE_INCLUSIVE);
             }
             d(tag, spannableStringBuilder);
+        }
+
+        @Override
+        public void postWsUrl(String url, int port, String path) throws RemoteException {
+            try {
+                mSocketClintPoxy.connect(url, port, path);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -91,7 +131,18 @@ public class LogRemoteService extends Service {
 
         @Override
         public void showWindow() throws RemoteException {
-            WindowUtils.showPopupWindow(getApplicationContext());
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                        && !Settings.canDrawOverlays(getApplicationContext())) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    return;
+                }
+                WindowUtils.showPopupWindow(getApplicationContext());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         @Override

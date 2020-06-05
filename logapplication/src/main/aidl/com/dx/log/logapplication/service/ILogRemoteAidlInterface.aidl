@@ -11,6 +11,7 @@ interface ILogRemoteAidlInterface {
         void println(CharSequence tag,CharSequence url,CharSequence parms,CharSequence response);
         void d(CharSequence tag,CharSequence msg);
         void printlnTag(CharSequence packageName,CharSequence tag,CharSequence childTag,CharSequence msg);
+        void postWsUrl(String url, int port, String path);
         void showWindow();
         void hideWindow();
 }

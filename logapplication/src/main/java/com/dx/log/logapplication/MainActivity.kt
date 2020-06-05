@@ -18,15 +18,10 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         if (WindowUtils.startGetPermission(this)) {
-//            handler.postDelayed({
-//                WindowUtils.showPopupWindow(applicationContext)
-//                finish()
-//            }, 3000)
         }
         findViewById<View>(R.id.tv_show).setOnClickListener {
             WindowUtils.showPopupWindow(applicationContext)
-//            bookbinders.setClass(this, TCPService().javaClass)
-//            startService(bookbinders)
+            startActivity(Intent(this, WebSocketActivity::class.java))
         }
 
     }
