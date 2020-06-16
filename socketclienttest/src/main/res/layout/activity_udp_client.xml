@@ -1,20 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/ll_top"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-
-        <EditText
-            android:id="@+id/et_account"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="A"
-            android:hint="A" />
 
         <TextView
             android:id="@+id/tv_text"
@@ -22,35 +16,91 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:padding="10dp" />
+
         <TextView
-            android:id="@+id/tv_text_client"
+            android:id="@+id/tv_i"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:padding="10dp" />
+
+        <TextView
+            android:id="@+id/tv_friend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:padding="10dp" />
 
     </LinearLayout>
 
+    <ListView
+        android:id="@+id/ll_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
     <LinearLayout
+        android:id="@+id/ll_bootom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true">
 
-        <Button
-            android:id="@+id/btn_send_udp_message"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/btn_login"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="登录" />
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="login" />
 
-        <Button
-            android:id="@+id/get"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/btn_server_1"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="获取" />
-        <Button
-            android:id="@+id/tv_connect"
-            android:layout_width="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="server1" />
+
+        <TextView
+            android:id="@+id/btn_server_2"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="连接" />
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="server2" />
+
+        <TextView
+            android:id="@+id/btn_connect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="connect" />
+
+        <TextView
+            android:id="@+id/btn_test"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="testsend" />
+
+        <TextView
+            android:id="@+id/btn_clear"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="clear" />
     </LinearLayout>
-</RelativeLayout>
+</LinearLayout>

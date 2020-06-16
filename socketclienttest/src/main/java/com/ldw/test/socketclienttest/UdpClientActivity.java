@@ -2,20 +2,25 @@ package com.ldw.test.socketclienttest;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -25,25 +30,30 @@ import butterknife.OnClick;
 public class UdpClientActivity extends Activity {
     @BindView(R.id.tv_text)
     TextView tvText;
-    @BindView(R.id.btn_send_udp_message)
-    Button btnSendUdpMessage;
-    @BindView(R.id.get)
-    Button get;
-    @BindView(R.id.et_account)
-    EditText etAccount;
-    @BindView(R.id.tv_text_client)
-    TextView tvTextClient;
-    @BindView(R.id.tv_connect)
-    Button tvConnect;
-    private DatagramSocket serverSocket = null;
-    private DatagramSocket clientSocket = null;
-    private InetAddress serverAddress = null;
-    private final String TAG = UdpClientActivity.class.getSimpleName();
-    private int serverPort = 6008;
-    private int id = Cons.ID_A;
+    @BindView(R.id.tv_friend)
+    TextView tvFriend;
+    @BindView(R.id.ll_list)
+    ListView llList;
+    @BindView(R.id.tv_i)
+    TextView tvI;
 
+    private DatagramSocket serverSocket1 = null;
+    private InetAddress serverAddress1 = null;
+
+    private DatagramSocket serverSocket2 = null;
+    private InetAddress serverAddress2 = null;
+    private int serverPort = 6007;
+
+
+    private DatagramSocket clientSocket = null;
     private InetAddress clientAddress = null;
-    private int clientPort = 6007;
+
+    private final String TAG = UdpClientActivity.class.getSimpleName();
+    FriendAdapter adapter;
+    List<FriendBean> list = new ArrayList<>();
+
+    String friendIp;
+    int friendPort;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,72 +61,132 @@ public class UdpClientActivity extends Activity {
         setContentView(R.layout.activity_udp_client);
         ButterKnife.bind(this);
 
-        new Thread(new Runnable() {
+        adapter = new FriendAdapter(list, this, R.layout.item_friends);
+        llList.setAdapter(adapter);
+        llList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                friendIp = list.get(position).ip;
+                friendPort = list.get(position).port;
+                showText();
+            }
+        });
+
+        ThreadPoolFactory.getInstance().execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     //自己的发送端口
-                    serverSocket = new DatagramSocket(3001);  //①
-                    //对方的ip http://111.229.61.204/
-//                    serverAddress = InetAddress.getByName("47.94.92.207");  //②
-                    serverAddress = InetAddress.getByName("111.229.61.204");  //②
+                    serverSocket1 = new DatagramSocket(3002);  //①
+                    serverAddress1 = InetAddress.getByName("47.94.92.207");  //②
+//                    serverAddress = InetAddress.getByName("111.229.61.204");  //②
+//                    serverAddress1 = InetAddress.getByName("192.168.0.232");  //②
+                    while (true) {
+                        //接收数据
+                        byte[] receiveData = new byte[1024];
+                        DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
+                        serverSocket1.receive(datagramPacket);
+                        //解析数据
+                        DataInputStream istream = new DataInputStream(new ByteArrayInputStream(datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength()));
+                        String msg = istream.readUTF();
+//                        byte[] datas = datagramPacket.getData();
+//                        String msg = new String(Utils.subBytes(datas, 0, datagramPacket.getLength()), "utf-8");
+                        handlerData(serverAddress1, msg);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
+        ThreadPoolFactory.getInstance().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    //自己的发送端口
+                    serverSocket2 = new DatagramSocket(3002);  //①
+//                    serverAddress2 = InetAddress.getByName("47.94.92.207");  //②
+                    serverAddress2 = InetAddress.getByName("111.229.61.204");  //②
 //                    serverAddress = InetAddress.getByName("192.168.0.232");  //②
                     while (true) {
                         //接收数据
                         byte[] receiveData = new byte[1024];
                         DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
-                        serverSocket.receive(datagramPacket);
+                        serverSocket2.receive(datagramPacket);
                         //解析数据
                         byte[] datas = datagramPacket.getData();
-                        final String json = new String(Utils.subBytes(datas, 0, datagramPacket.getLength()));
-                        LogLog.d(TAG, json);
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                tvText.setText(json);
-                            }
-                        });
-                        MessageBean messageBean = null;
-                        try {
-                            messageBean = JSON.parseObject(json, MessageBean.class);
-                            switch (messageBean.getProtocol()) {
-                                case Cons.PROTOCOL_LOGIN_ACK:
-
-                                    break;
-                                case Cons.PROTOCOL_GET_ONLINE_ACK:
-                                    HashMap<String, String> map = JSONObject.parseObject(messageBean.getData(), HashMap.class);
-                                    Iterator<Map.Entry<String, String>> it = map.entrySet().iterator();
-                                    while (it.hasNext()) {
-                                        Map.Entry<String, String> entry = it.next();
-                                        String key = entry.getKey();
-                                        String value = entry.getValue();
-                                        if (!key.equals(id + "")) {
-                                            String[] data = value.split(":");
-                                            clientAddress = InetAddress.getByName(data[0]);  //②
-                                            clientPort = Integer.parseInt(data[1]);
-                                        } else {
-                                            String[] data = value.split(":");
-                                        }
-                                    }
-                                    break;
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        String json = new String(Utils.subBytes(datas, 0, datagramPacket.getLength()), "utf-8");
+                        handlerData(serverAddress2, json);
                     }
 
                 } catch (Exception e) {
-                    e.printStackTrace();
+//                    e.printStackTrace();
                 }
             }
-        }).start();
+        });
+    }
 
+    private void showText() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tvFriend.setText("对方ip " + friendIp + ":" + friendPort);
+            }
+        });
+    }
+
+    private void handlerData(InetAddress serverAddress, String json) {
+        LogLog.d(TAG, json);
+        ResponseBean responseBean = null;
+        try {
+            responseBean = JSON.parseObject(json, ResponseBean.class);
+            switch (responseBean.type) {
+                case Cons.LOGIN:
+                    final ResponseBean finalResponseBean = responseBean;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            tvI.setText("我的ip " + finalResponseBean.ip + "：" + finalResponseBean.port);
+                        }
+                    });
+                    break;
+                case Cons.GETPORTFROMIP:
+                    break;
+                case Cons.NOINFO:
+                    break;
+                case Cons.ERROR:
+                    break;
+                case Cons.GETALLUSER:
+                    final String str = responseBean.data;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (TextUtils.isEmpty(str)) {
+                                return;
+                            }
+                            HashMap<String, Integer> map = JSON.parseObject(str, HashMap.class);
+                            list.clear();
+                            for (String key : map.keySet()) {
+                                FriendBean friendBean = new FriendBean();
+                                friendBean.ip = key;
+                                friendBean.port = map.get(key);
+                                list.add(friendBean);
+                            }
+                            adapter.notifyDataSetChanged();
+                        }
+                    });
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
-    private void sendMessage(final MessageBean messageBean) {
-
-        new Thread(new Runnable() {
+    private void sendMessage(final DatagramSocket serverSocket,
+                             final InetAddress serverAddress, final RequestBean messageBean) {
+        ThreadPoolFactory.getInstance().execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -127,48 +197,79 @@ public class UdpClientActivity extends Activity {
                     e.printStackTrace();
                 }
             }
-        }).start();
+        });
 
 
     }
 
-    @OnClick({R.id.btn_send_udp_message, R.id.get, R.id.tv_connect})
+    @OnClick({R.id.btn_login, R.id.btn_server_1, R.id.btn_server_2, R.id.btn_connect, R.id.btn_test,R.id.btn_clear})
     public void onViewClicked(View view) {
-        MessageBean messageBean = null;
-        id = Cons.ID_B;
-        if (etAccount.getText().toString().equals("A")) {
-            id = Cons.ID_A;
-        }
+        RequestBean requestBean = new RequestBean();
         switch (view.getId()) {
-            case R.id.btn_send_udp_message:
-                messageBean = new MessageBean(id, Cons.PROTOCOL_LOGIN, "login");
-                sendMessage(messageBean);
+            case R.id.btn_login:
+                requestBean.type = Cons.LOGIN;
+                sendMessage(serverSocket1, serverAddress1, requestBean);
                 break;
-            case R.id.get:
-                messageBean = new MessageBean(id, Cons.PROTOCOL_GET_ONLINE, "login");
-                sendMessage(messageBean);
+            case R.id.btn_server_1:
+                requestBean.type = Cons.GETALLUSER;
+                sendMessage(serverSocket1, serverAddress1, requestBean);
                 break;
-            case R.id.tv_connect:
-                tvTextClient.setText(clientAddress.getHostAddress() + " " + clientPort);
-                new Thread(new Runnable() {
+            case R.id.btn_server_2:
+                requestBean.type = Cons.GETALLUSER;
+                sendMessage(serverSocket2, serverAddress2, requestBean);
+                break;
+            case R.id.btn_connect:
+                ThreadPoolFactory.getInstance().execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            byte data[] = " from Client".getBytes();
-                            clientPort = (id == Cons.ID_A ? 4002 : 4001);
-                            DatagramPacket packet = new DatagramPacket(data, data.length, clientAddress, clientPort);   //③
-                            LogLog.d(TAG, "发送数据：" + clientAddress.getHostAddress() + " " + clientPort);
+                            clientAddress = InetAddress.getByName(friendIp);  //②
                             if (clientSocket == null) {
-                                clientSocket = new DatagramSocket(id == Cons.ID_A ? 4001 : 4002);
+                                clientSocket = new DatagramSocket(3003);
+                                while (true) {
+                                    //接收数据
+                                    byte[] receiveData = new byte[1024];
+                                    DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
+                                    clientSocket.receive(datagramPacket);
+                                    //解析数据
+                                    byte[] datas = datagramPacket.getData();
+                                    final String json = new String(Utils.subBytes(datas, 0, datagramPacket.getLength()), "utf-8");
+                                    LogLog.d(TAG,"收到数据啦：" + json);
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            tvText.setText("收到数据啦："+json);
+                                        }
+                                    });
+                                }
                             }
-                            clientSocket.send(packet);
 
-//                            serverSocket.send(packet);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
-                }).start();
+                });
+                break;
+            case R.id.btn_test:
+                ThreadPoolFactory.getInstance().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            friendPort = friendPort + 1;
+                            byte data[] = " from Client".getBytes();
+                            DatagramPacket packet = new DatagramPacket(data, data.length, clientAddress, friendPort);   //③
+                            showText();
+                            clientSocket.send(packet);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+                break;
+            case R.id.btn_clear:
+                requestBean.type = Cons.CLEAR;
+                sendMessage(serverSocket1, serverAddress1, requestBean);
                 break;
         }
     }
