@@ -77,8 +77,8 @@ public class UdpClientActivity extends Activity {
             public void run() {
                 try {
                     //自己的发送端口
-                    serverSocket1 = new DatagramSocket(3002);  //①
-                    serverAddress1 = InetAddress.getByName("47.94.92.207");  //②
+                    serverSocket1 = new DatagramSocket(3003);  //①
+                    serverAddress1 = InetAddress.getByName("47.94.92.207");  //②http://120.53.118.119:8080/demo_war/
 //                    serverAddress = InetAddress.getByName("111.229.61.204");  //②
 //                    serverAddress1 = InetAddress.getByName("192.168.0.232");  //②
                     while (true) {
@@ -107,7 +107,7 @@ public class UdpClientActivity extends Activity {
                     //自己的发送端口
                     serverSocket2 = new DatagramSocket(3002);  //①
 //                    serverAddress2 = InetAddress.getByName("47.94.92.207");  //②
-                    serverAddress2 = InetAddress.getByName("111.229.61.204");  //②
+                    serverAddress2 = InetAddress.getByName("120.53.118.119");  //②
 //                    serverAddress = InetAddress.getByName("192.168.0.232");  //②
                     while (true) {
                         //接收数据
@@ -209,6 +209,7 @@ public class UdpClientActivity extends Activity {
             case R.id.btn_login:
                 requestBean.type = Cons.LOGIN;
                 sendMessage(serverSocket1, serverAddress1, requestBean);
+                sendMessage(serverSocket2, serverAddress2, requestBean);
                 break;
             case R.id.btn_server_1:
                 requestBean.type = Cons.GETALLUSER;
@@ -270,6 +271,7 @@ public class UdpClientActivity extends Activity {
             case R.id.btn_clear:
                 requestBean.type = Cons.CLEAR;
                 sendMessage(serverSocket1, serverAddress1, requestBean);
+                sendMessage(serverSocket2, serverAddress2, requestBean);
                 break;
         }
     }
