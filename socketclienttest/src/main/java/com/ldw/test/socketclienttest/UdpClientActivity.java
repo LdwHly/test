@@ -17,6 +17,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,10 +38,9 @@ public class UdpClientActivity extends Activity {
     @BindView(R.id.tv_i)
     TextView tvI;
 
-    private DatagramSocket serverSocket1 = null;
+    private DatagramSocket serverSocket = null;
     private InetAddress serverAddress1 = null;
     private int serverPort1 = 6007;
-    private DatagramSocket serverSocket2 = null;
     private InetAddress serverAddress2 = null;
     private int serverPort2 = 443;
 
@@ -71,27 +72,30 @@ public class UdpClientActivity extends Activity {
                 showText();
             }
         });
-
+        try {
+            serverSocket = new DatagramSocket(3002);  //①
+            serverAddress2 = InetAddress.getByName("120.53.118.119");  //②
+            serverAddress1 = InetAddress.getByName("47.94.92.207");  //②http://120.53.118.119:8080/demo_war/
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         ThreadPoolFactory.getInstance().execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     //自己的发送端口
-                    serverSocket1 = new DatagramSocket(3003);  //①
-                    serverAddress1 = InetAddress.getByName("47.94.92.207");  //②http://120.53.118.119:8080/demo_war/
-//                    serverAddress = InetAddress.getByName("111.229.61.204");  //②
-//                    serverAddress1 = InetAddress.getByName("192.168.0.232");  //②
+
                     while (true) {
                         //接收数据
                         byte[] receiveData = new byte[1024];
                         DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
-                        serverSocket1.receive(datagramPacket);
+                        serverSocket.receive(datagramPacket);
                         //解析数据
                         DataInputStream istream = new DataInputStream(new ByteArrayInputStream(datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength()));
                         String msg = istream.readUTF();
-//                        byte[] datas = datagramPacket.getData();
-//                        String msg = new String(Utils.subBytes(datas, 0, datagramPacket.getLength()), "utf-8");
-                        handlerData(serverAddress1, msg);
+                        String ip = ((InetSocketAddress) datagramPacket.getSocketAddress()).getAddress().getHostAddress();
+                        int port = datagramPacket.getPort();
+                        handlerData(ip + "port", msg);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -99,34 +103,6 @@ public class UdpClientActivity extends Activity {
             }
         });
 
-
-        ThreadPoolFactory.getInstance().execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    //自己的发送端口
-                    serverSocket2 = new DatagramSocket(3002);  //①
-//                    serverAddress2 = InetAddress.getByName("47.94.92.207");  //②
-                    serverAddress2 = InetAddress.getByName("120.53.118.119");  //②
-//                    serverAddress = InetAddress.getByName("192.168.0.232");  //②
-                    while (true) {
-                        //接收数据
-                        byte[] receiveData = new byte[1024];
-                        DatagramPacket datagramPacket = new DatagramPacket(receiveData, receiveData.length);
-                        serverSocket2.receive(datagramPacket);
-                        //解析数据
-                        DataInputStream istream = new DataInputStream(new ByteArrayInputStream(datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength()));
-                        String msg = istream.readUTF();
-//                        byte[] datas = datagramPacket.getData();
-//                        String json = new String(Utils.subBytes(datas, 0, datagramPacket.getLength()), "utf-8");
-                        handlerData(serverAddress2, msg);
-                    }
-
-                } catch (Exception e) {
-//                    e.printStackTrace();
-                }
-            }
-        });
     }
 
     private void showText() {
@@ -138,8 +114,8 @@ public class UdpClientActivity extends Activity {
         });
     }
 
-    private void handlerData(InetAddress serverAddress, String json) {
-        LogLog.d(TAG, serverAddress.toString() + "返回：" + json);
+    private void handlerData(String serverAddress, String json) {
+        LogLog.d(TAG, serverAddress + "返回：" + json);
         ResponseBean responseBean = null;
         try {
             responseBean = JSON.parseObject(json, ResponseBean.class);
@@ -186,7 +162,7 @@ public class UdpClientActivity extends Activity {
     }
 
 
-    private void sendMessage(final DatagramSocket serverSocket,
+    private void sendMessage(
                              final InetAddress serverAddress, final RequestBean messageBean, final int port) {
         ThreadPoolFactory.getInstance().execute(new Runnable() {
             @Override
@@ -210,16 +186,16 @@ public class UdpClientActivity extends Activity {
         switch (view.getId()) {
             case R.id.btn_login:
                 requestBean.type = Cons.LOGIN;
-                sendMessage(serverSocket1, serverAddress1, requestBean, serverPort1);
-                sendMessage(serverSocket2, serverAddress2, requestBean, serverPort2);
+                sendMessage(serverAddress1, requestBean, serverPort1);
+                sendMessage(serverAddress2, requestBean, serverPort2);
                 break;
             case R.id.btn_server_1:
                 requestBean.type = Cons.GETALLUSER;
-                sendMessage(serverSocket1, serverAddress1, requestBean, serverPort1);
+                sendMessage(serverAddress1, requestBean, serverPort1);
                 break;
             case R.id.btn_server_2:
                 requestBean.type = Cons.GETALLUSER;
-                sendMessage(serverSocket2, serverAddress2, requestBean, serverPort2);
+                sendMessage(serverAddress2, requestBean, serverPort2);
                 break;
             case R.id.btn_connect:
                 ThreadPoolFactory.getInstance().execute(new Runnable() {
@@ -278,8 +254,8 @@ public class UdpClientActivity extends Activity {
                 break;
             case R.id.btn_clear:
                 requestBean.type = Cons.CLEAR;
-                sendMessage(serverSocket1, serverAddress1, requestBean, serverPort1);
-                sendMessage(serverSocket2, serverAddress2, requestBean, serverPort2);
+                sendMessage(serverAddress1, requestBean, serverPort1);
+                sendMessage(serverAddress2, requestBean, serverPort2);
                 break;
         }
     }
